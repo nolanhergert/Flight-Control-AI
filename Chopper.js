@@ -31,5 +31,10 @@ class Chopper {
   collision() {
     this.color = 'red';
   }
+  
+  landed() {
+    this.color = 'green';
+    this.remove = true;
+  }
 }
   

@@ -6,7 +6,12 @@ function RunTests() {
 function TestCover() {
   var chopper = new Chopper(50,50);
   var helipad = new Helipad(50,50);
-  console.assert(1==1, "Msg");
+  var choppers = [];
+  
+  choppers.push(new Chopper(200, 200));
+  
+  //CheckCollisions(choppers, helipad, 400,400);
+  //console.assert(1==0, "Msg");
 }
 
 function TestCollision() {

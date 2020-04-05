@@ -41,13 +41,20 @@ function draw() {
     choppers[index].show();
   }
   
-  checkCollisions();
+  checkCollisions(choppers, helipad, canvas);
+  
+  // Remove choppers that landed
+  // Does not work with <IE9. I think we'll be ok.
+  choppers = choppers.filter(function(el) { return el.remove != true; });
+  if (choppers.length == 0) {
+    choppers.push(new Chopper(canvas.width/2, canvas.height/2-50));
+  }
   textSize(20);
   text(points, canvas.width-25, 25);
 }
 
   
-function checkCollisions(choppers, canvas) {
+function checkCollisions(choppers, helipad, canvasWidth, canvasHeight) {
   // Interesting, it's easier and maybe even faster (for small N?)
   // to just check collisions over all possible combinations instead of making
   // a sorted list with relative distances and only checking the ones that
@@ -57,7 +64,7 @@ function checkCollisions(choppers, canvas) {
   for (index0 = 0; index0 < choppers.length; index0++) {
     
     // Check for overlap with other choppers
-    for (index1 = index0; index1 < choppers.length; index1++) {
+    for (index1 = index0+1; index1 < choppers.length; index1++) {
       if (OVERLAP_NONE != checkCircleOverlap(choppers[index0].x, choppers[index0].y, choppers[index0].radius, choppers[index1].x, choppers[index1].y, choppers[index1].radius)) {
         // FAILURE
         choppers[index0].collision();
@@ -68,26 +75,25 @@ function checkCollisions(choppers, canvas) {
         
     // Check for collision with side of map
     // Do simple center of circle check
-    if (choppers[index0].x < 0 || choppers[index0].x > canvas.width ||
-        choppers[index0].y < 0 || choppers[index0].y > canvas.height) {
+    if (choppers[index0].x < 0 || choppers[index0].x > canvasWidth ||
+        choppers[index0].y < 0 || choppers[index0].y > canvasHeight) {
       choppers[index].collision();
     }
     
     // Check for full overlap with helipad
     if (OVERLAP_FULL == checkCircleOverlap(choppers[index0].x, choppers[index0].y, choppers[index0].radius, helipad.x, helipad.y, helipad.radius)) {
       points++;
-      choppers.remove = true;
+      choppers[index0].landed();
     }
   }
 }
 
-// Does not work with <IE9. I think we'll be ok.
-// var filtered = someArray.filter(function(el) { return el.Name != "Kristian"; });
+
 
 
 // Thanks StackOverflow!
 // https://stackoverflow.com/a/12251083/931280
-// Using fast version just in case, better explained version is on the answer
+// Using fast version just in case, better explained version is on the answer above
 function checkCircleOverlap(x1,y1,radius1,x2,y2,radius2) {
   var diffx = x2 - x1;
   var diffy = y2 - y1;
