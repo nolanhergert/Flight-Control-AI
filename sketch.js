@@ -41,7 +41,7 @@ function draw() {
     choppers[index].show();
   }
   
-  checkCollisions(choppers, helipad, canvas);
+  checkCollisions(choppers, helipad, canvas.width, canvas.height);
   
   // Remove choppers that landed
   // Does not work with <IE9. I think we'll be ok.
@@ -53,7 +53,10 @@ function draw() {
   text(points, canvas.width-25, 25);
 }
 
-  
+function foo() {
+  return true;
+}
+
 function checkCollisions(choppers, helipad, canvasWidth, canvasHeight) {
   // Interesting, it's easier and maybe even faster (for small N?)
   // to just check collisions over all possible combinations instead of making
