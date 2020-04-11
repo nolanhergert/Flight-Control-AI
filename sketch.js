@@ -10,36 +10,130 @@ var points;
 var choppers;
 
 
+
+const MIN_CHOPPER_ALIVE_TIME = 5; // seconds
+
+const STARTING_TIME_BETWEEN_NEW_CHOPPERS = 5; // seconds
+const TIME_UNTIL_APOCALYPSE = 200; // seconds
+const RANGE_OF_SPAWN_TIME = .5; // seconds on either side
+
+const FPS = 60;
+
+
+
 // For checkCircleOverlap()
 const OVERLAP_FULL = 0;
 const OVERLAP_PARTIAL = 1;
 const OVERLAP_NONE = 2;
 
+var startTime = 0; // ms
+var prevTime = startTime;
+var currentTime = startTime;
+var nextChopperTime = startTime;
+const TIME_INCREMENT = 1000 / FPS; // ms
+
+var UNSUCCESSFUL = false;
 
 function preload() {
   RunTests();
 }
 
 function setup() {
-  // TODO: Eventually let user set this value on HTML?
+  // Sets what version of randomness you'll get on this run
+  // Change the seed, you'll get a completely different "roll of the dice"
+  // Keep the seed the same, you'll get the exact same "roll of the dice" every time! Makes reproduction much easier
   randomSeed(0);
   
   window.canvas = createCanvas(600, 800);
+  
+  frameRate(FPS);
   choppers = [];
-  choppers.push(new Chopper(canvas.width/2, canvas.height/2-50));
+  
   helipad = new Helipad(canvas.width/2, canvas.height/2);
   points = 0;
 }
 
 function draw() {
-   
+
   background(135, 206, 250);
   helipad.show();
   var index;
+  
+  
+  /*
+  if (UNSUCCESSFUL == true) {
+    // Time stops
+    //console.assert(false, "Unsuccessful");
+    currentTime = prevTime;
+  } else {
+  */
+  
+  currentTime += TIME_INCREMENT;
+  
+  if (currentTime >= nextChopperTime) {
+    // Add a new chopper!
+    // Pick a spot some distance around the perimeter of the canvas
+    // starting at the top left corner and going clockwise
+    var positionAroundEdgeOfCanvas = random(0, canvas.width*2+canvas.height*2);
+    var x, y;
+    if (positionAroundEdgeOfCanvas <= canvas.width) {
+      // Top edge
+      x = positionAroundEdgeOfCanvas;
+      y = 0;
+    } else if (positionAroundEdgeOfCanvas <= canvas.width + canvas.height) {
+      // Right edge
+      x = canvas.width;
+      y = positionAroundEdgeOfCanvas - canvas.width;
+    } else if (positionAroundEdgeOfCanvas <= canvas.width + canvas.height + canvas.width) {
+      // Bottom edge
+      x = positionAroundEdgeOfCanvas - canvas.width - canvas.height;
+      y = canvas.height;
+    } else if (positionAroundEdgeOfCanvas <= canvas.width + canvas.height + canvas.width + canvas.height) {
+      // Left edge
+      x = 0; 
+      y = positionAroundEdgeOfCanvas - canvas.width - canvas.height - canvas.width;
+    } else {
+      console.assert(false, "Not supposed to be here!");
+    }
+    
+    // All of the above positions are valid. However, only some headings from the
+    // above positions are valid. Rather than come up with a universal math formula, I'm
+    // going to express the result in the way I want and throw out answers that don't work.
+    // Rule is: Give the user at least MIN_CHOPPER_ALIVE_TIME seconds to redirect the chopper
+    // before it goes off the edge
+    var x2, y2, heading;
+    while (true) {
+      heading = random(0, 360);
+      var result = Displacement(x, y, heading, CHOPPER_SPEED, MIN_CHOPPER_ALIVE_TIME*1000);
+      x2 = result[0];
+      y2 = result[1];
+      if (!CollideEdgeOfMap(canvas.width, canvas.height, x2, y2)) {
+        break;
+      }
+    }
+    choppers.push(new Chopper(x, y, heading));
+    
+
+    // Spawn in decreasing intervals according to time since start of game
+    // Add a little randomness too
+    var timeDiff = (currentTime - startTime);
+    var lineValue = (-STARTING_TIME_BETWEEN_NEW_CHOPPERS/TIME_UNTIL_APOCALYPSE) * timeDiff/1000 + STARTING_TIME_BETWEEN_NEW_CHOPPERS;
+    // setSeconds unintuitively handles wraparound cases. See https://stackoverflow.com/a/7687926/931280
+    var randomValue = 1000*random(lineValue - RANGE_OF_SPAWN_TIME, lineValue + RANGE_OF_SPAWN_TIME);
+    if (randomValue < 0) {
+      randomValue = .02; // once every frame hmmm, can make harder too...
+    }
+    nextChopperTime = currentTime + randomValue;
+  }
+  
+  
   for (index = 0; index < choppers.length; index++) {
-    choppers[index].move();
+    choppers[index].move(currentTime - prevTime);
     choppers[index].show();
   }
+  // Not sure whether to do this now or after collision detection...
+  prevTime = currentTime;
+  
   
   checkCollisions(choppers, helipad, canvas.width, canvas.height);
   
@@ -69,20 +163,17 @@ function checkCollisions(choppers, helipad, canvasWidth, canvasHeight) {
     // Check for overlap with other choppers
     for (index1 = index0+1; index1 < choppers.length; index1++) {
       if (OVERLAP_NONE != checkCircleOverlap(choppers[index0].x, choppers[index0].y, choppers[index0].radius, choppers[index1].x, choppers[index1].y, choppers[index1].radius)) {
-        // FAILURE
         choppers[index0].collision();
         choppers[index1].collision();
-        console.assert(false, "Collision detected between choppers!");
+        UNSUCCESSFUL = true;
       }
     }
         
-    // Check for collision with side of map
-    // Do simple center of circle check
-    if (choppers[index0].x < 0 || choppers[index0].x > canvasWidth ||
-        choppers[index0].y < 0 || choppers[index0].y > canvasHeight) {
-      choppers[index].collision();
+    if (CollideEdgeOfMap(canvas.width, canvas.height, choppers[index0].x, choppers[index0].y)) {
+      choppers[index0].collision();      
+      UNSUCCESSFUL = true;
     }
-    
+       
     // Check for full overlap with helipad
     if (OVERLAP_FULL == checkCircleOverlap(choppers[index0].x, choppers[index0].y, choppers[index0].radius, helipad.x, helipad.y, helipad.radius)) {
       points++;
@@ -93,23 +184,3 @@ function checkCollisions(choppers, helipad, canvasWidth, canvasHeight) {
 
 
 
-
-// Thanks StackOverflow!
-// https://stackoverflow.com/a/12251083/931280
-// Using fast version just in case, better explained version is on the answer above
-function checkCircleOverlap(x1,y1,radius1,x2,y2,radius2) {
-  var diffx = x2 - x1;
-  var diffy = y2 - y1;
-
-  var Dsqr = diffx*diffx + diffy*diffy;
-  var rdiff = Math.abs(radius1-radius2);
-  var rsum = radius1+radius2;
-  
-  if (rdiff*rdiff < Dsqr && Dsqr < rsum*rsum) {
-    return OVERLAP_PARTIAL;
-  } else if (Dsqr <= rdiff*rdiff) {
-    return OVERLAP_FULL;
-  } else {
-    return OVERLAP_NONE;
-  }
-}

@@ -1,14 +1,17 @@
-var CHOPPER_RADIUS = 10;
+const CHOPPER_RADIUS = 10;
+const CHOPPER_SPEED = 40; // pixels/s
 
 
 // This should really be a generic "Aircraft" class, but we'll let it slide for now
 class Chopper {
-  constructor(x, y) {
+  constructor(x, y, heading) {
     this.x = x;
     this.y = y;
     this.radius = CHOPPER_RADIUS;
     this.remove = false;
     this.color = 'gray';
+    this.heading = heading; // in degrees clockwise from North. See http://3.bp.blogspot.com/-sKFXSUT021M/VZRjnWWlkfI/AAAAAAAABpE/p7ct0iK4r5w/s1600/Headingv3.jpg
+    this.speed = CHOPPER_SPEED; // pixels/s
   }
   
   show() {
@@ -23,9 +26,11 @@ class Chopper {
     pop();
   }
   
-  move() {
-    // Wraparound
-    this.y = (this.y + 1)%canvas.height;
+  move(elapsedTimeInMs) {
+    // TODO: Incorporate paths here too
+    var values = Displacement(this.x, this.y, this.heading, this.speed, elapsedTimeInMs);
+    this.x = values[0];
+    this.y = values[1];
   }
   
   collision() {
