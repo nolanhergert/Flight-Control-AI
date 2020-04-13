@@ -14,7 +14,7 @@ var choppers;
 const MIN_CHOPPER_ALIVE_TIME = 5; // seconds
 
 const STARTING_TIME_BETWEEN_NEW_CHOPPERS = 5; // seconds
-const TIME_UNTIL_APOCALYPSE = 200; // seconds
+const TIME_UNTIL_APOCALYPSE = 30; // seconds
 const RANGE_OF_SPAWN_TIME = .5; // seconds on either side
 
 const FPS = 60;
@@ -44,7 +44,7 @@ function setup() {
   // Keep the seed the same, you'll get the exact same "roll of the dice" every time! Makes reproduction much easier
   randomSeed(0);
   
-  window.canvas = createCanvas(600, 800);
+  window.canvas = createCanvas(400, 400);
   
   frameRate(FPS);
   choppers = [];
@@ -70,60 +70,23 @@ function draw() {
   
   currentTime += TIME_INCREMENT;
   
-  if (currentTime >= nextChopperTime) {
+  while(currentTime >= nextChopperTime) {
     // Add a new chopper!
-    // Pick a spot some distance around the perimeter of the canvas
-    // starting at the top left corner and going clockwise
-    var positionAroundEdgeOfCanvas = random(0, canvas.width*2+canvas.height*2);
-    var x, y;
-    if (positionAroundEdgeOfCanvas <= canvas.width) {
-      // Top edge
-      x = positionAroundEdgeOfCanvas;
-      y = 0;
-    } else if (positionAroundEdgeOfCanvas <= canvas.width + canvas.height) {
-      // Right edge
-      x = canvas.width;
-      y = positionAroundEdgeOfCanvas - canvas.width;
-    } else if (positionAroundEdgeOfCanvas <= canvas.width + canvas.height + canvas.width) {
-      // Bottom edge
-      x = positionAroundEdgeOfCanvas - canvas.width - canvas.height;
-      y = canvas.height;
-    } else if (positionAroundEdgeOfCanvas <= canvas.width + canvas.height + canvas.width + canvas.height) {
-      // Left edge
-      x = 0; 
-      y = positionAroundEdgeOfCanvas - canvas.width - canvas.height - canvas.width;
-    } else {
-      console.assert(false, "Not supposed to be here!");
-    }
+    var c = CreateNewRandomChopper(canvas.width, canvas.height);
+    // Start of AI stuff
+    c.path([new Waypoint([canvas.height/2, canvas.width/2])]);
+    choppers.push(c);
     
-    // All of the above positions are valid. However, only some headings from the
-    // above positions are valid. Rather than come up with a universal math formula, I'm
-    // going to express the result in the way I want and throw out answers that don't work.
-    // Rule is: Give the user at least MIN_CHOPPER_ALIVE_TIME seconds to redirect the chopper
-    // before it goes off the edge
-    var x2, y2, heading;
-    while (true) {
-      heading = random(0, 360);
-      var result = Displacement(x, y, heading, CHOPPER_SPEED, MIN_CHOPPER_ALIVE_TIME*1000);
-      x2 = result[0];
-      y2 = result[1];
-      if (!CollideEdgeOfMap(canvas.width, canvas.height, x2, y2)) {
-        break;
-      }
-    }
-    choppers.push(new Chopper(x, y, heading));
-    
-
     // Spawn in decreasing intervals according to time since start of game
-    // Add a little randomness too
     var timeDiff = (currentTime - startTime);
     var lineValue = (-STARTING_TIME_BETWEEN_NEW_CHOPPERS/TIME_UNTIL_APOCALYPSE) * timeDiff/1000 + STARTING_TIME_BETWEEN_NEW_CHOPPERS;
-    // setSeconds unintuitively handles wraparound cases. See https://stackoverflow.com/a/7687926/931280
-    var randomValue = 1000*random(lineValue - RANGE_OF_SPAWN_TIME, lineValue + RANGE_OF_SPAWN_TIME);
-    if (randomValue < 0) {
-      randomValue = .02; // once every frame hmmm, can make harder too...
+    // Add a little randomness too
+    var randomInterval = 1000*random(lineValue - RANGE_OF_SPAWN_TIME, lineValue + RANGE_OF_SPAWN_TIME);
+    if (randomInterval < 0) {
+      // Negative numbers don't work, just make it really small
+      randomInterval = .01;
     }
-    nextChopperTime = currentTime + randomValue;
+    nextChopperTime = currentTime + randomInterval;
   }
   
   
@@ -149,6 +112,35 @@ function draw() {
 
 function foo() {
   return true;
+}
+
+function CreateNewRandomChopper(canvasWidth, canvasHeight) {
+
+  // Pick a spot some distance around the perimeter of the canvas
+  // starting at the top left corner and going clockwise
+  var distanceAroundEdgeOfCanvas = random(0, canvas.width*2+canvas.height*2);
+  var x, y;
+  var result = MapDistanceToEdgeLocation(distanceAroundEdgeOfCanvas, canvas.width, canvas.height);
+  x = result[0];
+  y = result[1];
+
+  
+  // All possible above positions are valid. However, only some headings from the
+  // above positions are valid. Rather than come up with a universal math formula, I'm
+  // going to express the result in the way I want and throw out answers that don't work.
+  // Rule is: Give the user at least MIN_CHOPPER_ALIVE_TIME seconds to redirect the chopper
+  // before it goes off the edge
+  var x2, y2, heading;
+  while (true) {
+    heading = random(0, 360);
+    var result = Displacement(x, y, heading, CHOPPER_SPEED, MIN_CHOPPER_ALIVE_TIME*1000);
+    x2 = result[0];
+    y2 = result[1];
+    if (!CollideEdgeOfMap(canvas.width, canvas.height, x2, y2)) {
+      break;
+    }
+  }
+  return new Chopper(x, y, heading);
 }
 
 function checkCollisions(choppers, helipad, canvasWidth, canvasHeight) {
