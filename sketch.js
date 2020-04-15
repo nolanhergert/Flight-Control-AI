@@ -10,14 +10,17 @@ var points;
 var choppers;
 
 
+///////////////////////////////////////////
+// Customizable values values
 
 const MIN_CHOPPER_ALIVE_TIME = 5; // seconds
 
 const STARTING_TIME_BETWEEN_NEW_CHOPPERS = 5; // seconds
 const TIME_UNTIL_APOCALYPSE = 30; // seconds
-const RANGE_OF_SPAWN_TIME = .5; // seconds on either side
 
 const FPS = 60;
+
+///////////////////////////////////////////
 
 
 
@@ -26,6 +29,7 @@ const OVERLAP_FULL = 0;
 const OVERLAP_PARTIAL = 1;
 const OVERLAP_NONE = 2;
 
+// Almost all references to time in the code are in milliseconds
 var startTime = 0; // ms
 var prevTime = startTime;
 var currentTime = startTime;
@@ -33,6 +37,8 @@ var nextChopperTime = startTime;
 const TIME_INCREMENT = 1000 / FPS; // ms
 
 var UNSUCCESSFUL = false;
+
+var AI;
 
 function preload() {
   RunTests();
@@ -51,10 +57,12 @@ function setup() {
   
   helipad = new Helipad(canvas.width/2, canvas.height/2);
   points = 0;
+  
+  AI = new AISimple(choppers, helipad);
 }
 
 function draw() {
-
+  // Set background color
   background(135, 206, 250);
   helipad.show();
   var index;
@@ -68,28 +76,28 @@ function draw() {
   } else {
   */
   
+  // While we could increment by "wall clock"/real time here, it makes the result
+  // using the debugger and when using lots of airplanes really jerky. So keeping
+  // standard increment time based on FPS for now
   currentTime += TIME_INCREMENT;
   
   while(currentTime >= nextChopperTime) {
     // Add a new chopper!
     var c = CreateNewRandomChopper(canvas.width, canvas.height);
-    // Start of AI stuff
-    c.path([new Waypoint([canvas.height/2, canvas.width/2])]);
     choppers.push(c);
-    
+    AI.update();
+        
     // Spawn in decreasing intervals according to time since start of game
-    var timeDiff = (currentTime - startTime);
-    var lineValue = (-STARTING_TIME_BETWEEN_NEW_CHOPPERS/TIME_UNTIL_APOCALYPSE) * timeDiff/1000 + STARTING_TIME_BETWEEN_NEW_CHOPPERS;
-    // Add a little randomness too
-    var randomInterval = 1000*random(lineValue - RANGE_OF_SPAWN_TIME, lineValue + RANGE_OF_SPAWN_TIME);
-    if (randomInterval < 0) {
+    var timeSinceGameStart = (currentTime - startTime);
+    var lineValue = 1000 * ((-STARTING_TIME_BETWEEN_NEW_CHOPPERS/TIME_UNTIL_APOCALYPSE) * timeSinceGameStart/1000 + STARTING_TIME_BETWEEN_NEW_CHOPPERS);
+    if (lineValue < 0) {
       // Negative numbers don't work, just make it really small
-      randomInterval = .01;
+      lineValue = .01;
     }
-    nextChopperTime = currentTime + randomInterval;
+    nextChopperTime = currentTime + lineValue;
   }
   
-  
+  // Move choppers according to frame time elapsed
   for (index = 0; index < choppers.length; index++) {
     choppers[index].move(currentTime - prevTime);
     choppers[index].show();
@@ -97,17 +105,22 @@ function draw() {
   // Not sure whether to do this now or after collision detection...
   prevTime = currentTime;
   
-  
   checkCollisions(choppers, helipad, canvas.width, canvas.height);
   
   // Remove choppers that landed
   // Does not work with <IE9. I think we'll be ok.
-  choppers = choppers.filter(function(el) { return el.remove != true; });
-  if (choppers.length == 0) {
-    choppers.push(new Chopper(canvas.width/2, canvas.height/2-50));
+  for (i = 0; i < choppers.length; i++) {
+    if (choppers[i].remove == true) {
+      // This allocates new memory for choppers, invalidating
+      // the previous reference
+      choppers.splice(i, 1);
+    }
   }
+
   textSize(20);
-  text(points, canvas.width-25, 25);
+  // TODO: Right aligned text
+  text(points, canvas.width-50, 25);
+
 }
 
 function foo() {
@@ -149,27 +162,28 @@ function checkCollisions(choppers, helipad, canvasWidth, canvasHeight) {
   // a sorted list with relative distances and only checking the ones that
   // are close enough to each other. That's basically the first one, just doing
   // more work.
-  var index0, index1;
-  for (index0 = 0; index0 < choppers.length; index0++) {
-    
+  var i, j, c, c2;
+  for (i = 0; i < choppers.length; i++) {
+    c = choppers[i];
     // Check for overlap with other choppers
-    for (index1 = index0+1; index1 < choppers.length; index1++) {
-      if (OVERLAP_NONE != checkCircleOverlap(choppers[index0].x, choppers[index0].y, choppers[index0].radius, choppers[index1].x, choppers[index1].y, choppers[index1].radius)) {
-        choppers[index0].collision();
-        choppers[index1].collision();
+    for (j = i+1; j < choppers.length; j++) {
+      c2 = choppers[j];
+      if (OVERLAP_NONE != checkCircleOverlap(c.x, c.y, c.radius, c2.x, c2.y, c2.radius)) {
+        c.collision();
+        c2.collision();
         UNSUCCESSFUL = true;
       }
     }
         
-    if (CollideEdgeOfMap(canvas.width, canvas.height, choppers[index0].x, choppers[index0].y)) {
-      choppers[index0].collision();      
+    if (CollideEdgeOfMap(canvas.width, canvas.height, c.x, c.y)) {
+      c.collision();
       UNSUCCESSFUL = true;
     }
        
     // Check for full overlap with helipad
-    if (OVERLAP_FULL == checkCircleOverlap(choppers[index0].x, choppers[index0].y, choppers[index0].radius, helipad.x, helipad.y, helipad.radius)) {
+    if (OVERLAP_FULL == checkCircleOverlap(c.x, c.y, c.radius, helipad.x, helipad.y, helipad.radius)) {
       points++;
-      choppers[index0].landed();
+      c.landed();
     }
   }
 }

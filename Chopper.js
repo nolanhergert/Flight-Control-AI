@@ -1,5 +1,6 @@
-const CHOPPER_RADIUS = 10;
-const CHOPPER_SPEED = 40; // pixels/s
+const CHOPPER_RADIUS = 10; // pixels
+const CHOPPER_SPEED = 40/1000; // pixels/ms
+
 
 
 // This should really be a generic "Aircraft" class, but we'll let it slide for now
@@ -11,7 +12,7 @@ class Chopper {
     this.remove = false;
     this.color = 'gray';
     this.heading = heading; // in degrees clockwise from North. See http://3.bp.blogspot.com/-sKFXSUT021M/VZRjnWWlkfI/AAAAAAAABpE/p7ct0iK4r5w/s1600/Headingv3.jpg
-    this.speed = CHOPPER_SPEED; // pixels/second
+    this.speed = CHOPPER_SPEED; // pixels/ms
     this.waypoints = [];
   }
   
@@ -21,10 +22,19 @@ class Chopper {
     // TODO: Use image sprite
     stroke(150);
     fill(this.color);  
-  
     circle(this.x, this.y, this.radius*2);
     
-    // TODO: Also draw waypoints + path
+    // Draw waypoints + path between them
+    var i = 0;
+    if (this.waypoints.length > 0) {
+      line(this.x, this.y, this.waypoints[0].x, this.waypoints[0].y);
+      circle(this.waypoints[0].x, this.waypoints[0].y, WAYPOINT_RADIUS);
+      for (i = 1; i < this.waypoints.length; i++) {  
+        line(this.waypoints[i-1].x, this.waypoints[i-1].y, this.waypoints[i].x, this.waypoints[i].y);
+        circle(this.waypoints[i].x, this.waypoints[i].y, WAYPOINT_RADIUS);
+      }
+    }
+    
     pop();
   }
   
@@ -45,7 +55,7 @@ class Chopper {
       }
       
       // Jump to the next waypoint
-      remainingTimeInMs -= (1/this.speed) * distanceToWaypoint;
+      remainingTimeInMs -= (distanceToWaypoint/this.speed);
       this.x = this.waypoints[0].x;
       this.y = this.waypoints[0].y;
       // Remove first item

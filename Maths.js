@@ -1,4 +1,5 @@
 
+const WAYPOINT_RADIUS = 3; // pixels
 
 class Waypoint {
   constructor([x,y]) {
@@ -14,7 +15,11 @@ class Waypoint {
 function checkCircleOverlap(x1,y1,radius1,x2,y2,radius2) {
   var diffx = x2 - x1;
   var diffy = y2 - y1;
+  var foo = 0;
 
+  if (x1 < 205) {
+    foo = 1;
+  }
   var Dsqr = diffx*diffx + diffy*diffy;
   var rdiff = Math.abs(radius1-radius2);
   var rsum = radius1+radius2;
@@ -32,9 +37,9 @@ function checkCircleOverlap(x1,y1,radius1,x2,y2,radius2) {
 // How far will an object go assuming the same heading and speed?
 function Displacement(x, y, heading, speed, elapsedTimeInMs) {
   // Formula are tested in Tests.js in TestSpeedEqualRegardlessOfOrientation()
-  var x2 = x + (elapsedTimeInMs/1000)*speed*Math.sin((heading/360)*(2*Math.PI));
+  var x2 = x + elapsedTimeInMs*speed*Math.sin((heading/360)*(2*Math.PI));
   // Invert cos value for "computer" coordinates
-  var y2 = y + (elapsedTimeInMs/1000)*speed*(-1)*Math.cos((heading/360)*(2*Math.PI));
+  var y2 = y + elapsedTimeInMs*speed*(-1)*Math.cos((heading/360)*(2*Math.PI));
   return [x2, y2];
 }
 

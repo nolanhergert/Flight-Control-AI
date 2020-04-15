@@ -32,7 +32,7 @@ function TestDisplacement() {
   var x = 0;
   var y = 0;
   var heading = 0;
-  var speed = 100; // in pixels / sec
+  var speed = 100/1000; // in pixels / ms
   var elapsedTimeInMs = 1000;
   
   var result = new Waypoint(Displacement(x, y, heading, speed, elapsedTimeInMs));
@@ -47,11 +47,11 @@ function TestDisplacement() {
 
 
 
-
+// Helper function for TestSpeedEqualRegardlessOfOrientation()
 function MoveAndTest(c) {
   var timeElapsed = 50; //ms
   var distance = 0;
-  var distanceExpected = (timeElapsed/1000)*CHOPPER_SPEED;
+  var distanceExpected = timeElapsed*CHOPPER_SPEED;
   
   
   c.move(timeElapsed); // ms
@@ -79,7 +79,7 @@ function TestCalcHeading() {
   console.assert(CalcHeading(0,0,0,-1) == 0);
   console.assert(CalcHeading(0,0,1, 0) == 90);
   
-  // 45 degrees
+  // 45 degree offsets
   console.assert(CalcHeading(0,0,1,1) == 135);
   console.assert(CalcHeading(0,0,1,-1) == 45);
   console.assert(CalcHeading(0,0,-1,-1) == 315);
@@ -101,9 +101,4 @@ function TestMapDistanceToEdgeLocation() {
   console.assert(result.x == 0 && result.y == 1);
   result = new Waypoint(MapDistanceToEdgeLocation(1600, 400, 400));
   console.assert(result.x == 0 && result.y == 0);
-}
-
-function TestCollision() {
-
-
 }
