@@ -15,8 +15,8 @@ var choppers;
 
 const MIN_CHOPPER_ALIVE_TIME = 5; // seconds
 
-const STARTING_TIME_BETWEEN_NEW_CHOPPERS = 5; // seconds
-const TIME_UNTIL_APOCALYPSE = 30; // seconds
+const STARTING_TIME_BETWEEN_NEW_CHOPPERS = 1; // seconds
+const TIME_UNTIL_APOCALYPSE = 120; // seconds
 
 const FPS = 60;
 
@@ -84,7 +84,7 @@ function draw() {
   // Add new chopper if applicable
   while(currentTime >= nextChopperTime) {
     // Add a new chopper!
-    var c = CreateNewRandomChopper(canvas.width, canvas.height);
+    var c = CreateNewRandomChopper(canvas.width, canvas.height, choppers);
     choppers.push(c);
     AI.update();
         
@@ -167,20 +167,35 @@ function checkCollisions(choppers, helipad, canvasWidth, canvasHeight) {
 
 
 
-function CreateNewRandomChopper(canvasWidth, canvasHeight) {
+function CreateNewRandomChopper(canvasWidth, canvasHeight, choppers) {
 
   // Pick a spot some distance around the perimeter of the canvas
   // starting at the top left corner and going clockwise. However should be fully visible
   // so minus a multiple of chopper width
-  var distanceAroundEdgeOfCanvas = random(0, canvas.width*2+canvas.height*2 - 8*CHOPPER_RADIUS);
-  var x, y;
-  var result = MapDistanceToEdgeLocation(distanceAroundEdgeOfCanvas, canvas.width-4*CHOPPER_RADIUS, canvas.height-4*CHOPPER_RADIUS);
-  // Bring up the 0 values
-  x = result[0]+2*CHOPPER_RADIUS;
-  y = result[1]+2*CHOPPER_RADIUS;
+  while (true) {
+    var distanceAroundEdgeOfCanvas = random(0, canvas.width*2+canvas.height*2 - 16*CHOPPER_RADIUS);
+    var x, y;
+    var result = MapDistanceToEdgeLocation(distanceAroundEdgeOfCanvas, canvas.width-4*CHOPPER_RADIUS, canvas.height-4*CHOPPER_RADIUS);
+    // Bring up the 0 values
+    x = result[0]+2*CHOPPER_RADIUS;
+    y = result[1]+2*CHOPPER_RADIUS;
+    
+    // Only break out if the position doesn't intersect with an existing chopper
+    var intersection = false;
+    for (i = 0; i < choppers.length; i++) {
+      if (OVERLAP_NONE != checkCircleOverlap(x,y,CHOPPER_RADIUS,choppers[i].x,choppers[i].y,choppers[i].radius)) {
+        intersection = true;
+        break;
+      }
+    }
+    if (intersection == false) {
+      // Success!
+      break;
+    }
+  }
 
   
-  // All possible above positions are valid. However, only some headings from the
+  // The position determined above is valid. However, only some headings from the
   // above positions are valid. Rather than come up with a universal math formula, I'm
   // going to express the result in the way I want and throw out answers that don't work.
   // Rule is: Give the user at least MIN_CHOPPER_ALIVE_TIME seconds to redirect the chopper

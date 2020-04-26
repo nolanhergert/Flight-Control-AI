@@ -39,6 +39,7 @@ class AISimple {
       CloneChoppers(choppersCopy, self.choppers);
       // Make the i'th chopper (the one we're trying to plan a path for) have
       // the current trial of waypoints
+      //choppersCopy[chopperIndex].waypoints = [];
       CloneWaypoints(choppersCopy[chopperIndex].waypoints, waypoints);
  
     
@@ -74,12 +75,12 @@ class AISimple {
         break;
       } else {
         // Try a delay at the beginning by doing a little boogie
-        waypoints.unshift(new Waypoint(Displacement(chopperToPath.x, chopperToPath.y, chopperToPath.heading, chopperToPath.speed, TIME_INCREMENT*6)));
+        waypoints.unshift(new Waypoint(Displacement(chopperToPath.x, chopperToPath.y, chopperToPath.heading, chopperToPath.speed, TIME_INCREMENT*2)));
         waypoints.unshift(new Waypoint([chopperToPath.x, chopperToPath.y]));
       }
       
     }
-    
+
     return waypoints;
   }
     
@@ -114,7 +115,8 @@ function CloneChoppers(choppersDest, choppersSrc) {
     // Create a new chopper object and copy the properties
     chopper = new Chopper();
     Object.assign(chopper, choppersSrc[i]);
-    // Need to deep copy the waypoints
+    // Need to deep copy the waypoints and don't want to modify the original
+    chopper.waypoints = [];
     CloneWaypoints(chopper.waypoints, choppersSrc[i].waypoints);
     choppersDest.push(chopper);
   }
@@ -126,7 +128,6 @@ function CloneWaypoints(waypointsDest, waypointsSrc) {
   for (i = 0; i < waypointsSrc.length; i++) {
     // Create a new waypoint object and copy the properties
     waypoint = new Waypoint([waypointsSrc[i].x, waypointsSrc[i].y]);
-    //Object.assign(waypoint, waypointsSrc[i]);
     waypointsDest.push(waypoint);
   }
 }
