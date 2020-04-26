@@ -31,7 +31,6 @@ const OVERLAP_NONE = 2;
 
 // Almost all references to time in the code are in milliseconds
 var startTime = 0; // ms
-var prevTime = startTime;
 var currentTime = startTime;
 var nextChopperTime = startTime;
 const TIME_INCREMENT = 1000 / FPS; // ms
@@ -58,29 +57,31 @@ function setup() {
   helipad = new Helipad(canvas.width/2, canvas.height/2);
   points = 0;
   
-  AI = new AISimple(choppers, helipad);
+  AI = new AISimple(choppers, helipad, canvas.width, canvas.height);
 }
 
+// Should really be called "loop()"
 function draw() {
-  // Set background color
-  background(135, 206, 250);
-  helipad.show();
-  var index;
-  
-  
-  /*
-  if (UNSUCCESSFUL == true) {
-    // Time stops
-    //console.assert(false, "Unsuccessful");
-    currentTime = prevTime;
-  } else {
-  */
-  
+
+
   // While we could increment by "wall clock"/real time here, it makes the result
   // using the debugger and when using lots of airplanes really jerky. So keeping
   // standard increment time based on FPS for now
+  moveWorld(choppers, helipad, canvas.width, canvas.height, TIME_INCREMENT);
   currentTime += TIME_INCREMENT;
   
+  // If a chopper landed, remove it and increment points
+  for (i = 0; i < choppers.length; i++) {
+    if (choppers[i].remove == true) {
+      // This allocates new memory for choppers, invalidating
+      // the previous choppers memory
+      choppers.splice(i, 1);
+      
+      points++;
+    }
+  }
+  
+  // Add new chopper if applicable
   while(currentTime >= nextChopperTime) {
     // Add a new chopper!
     var c = CreateNewRandomChopper(canvas.width, canvas.height);
@@ -97,24 +98,14 @@ function draw() {
     nextChopperTime = currentTime + lineValue;
   }
   
-  // Move choppers according to frame time elapsed
-  for (index = 0; index < choppers.length; index++) {
-    choppers[index].move(currentTime - prevTime);
-    choppers[index].show();
-  }
-  // Not sure whether to do this now or after collision detection...
-  prevTime = currentTime;
-  
-  checkCollisions(choppers, helipad, canvas.width, canvas.height);
-  
-  // Remove choppers that landed
-  // Does not work with <IE9. I think we'll be ok.
+
+
+
+  // Set background color
+  background(135, 206, 250);
+  helipad.show();
   for (i = 0; i < choppers.length; i++) {
-    if (choppers[i].remove == true) {
-      // This allocates new memory for choppers, invalidating
-      // the previous reference
-      choppers.splice(i, 1);
-    }
+    choppers[i].show();
   }
 
   textSize(20);
@@ -123,19 +114,70 @@ function draw() {
 
 }
 
-function foo() {
-  return true;
+// Making this a separate function allows for simulation without drawing when
+// doing AI path planning
+// Returns True if a collision occurred, false otherwise.
+function moveWorld(choppers, helipad, canvasWidth, canvasHeight, elapsedTimeInMs) {
+
+  var i;
+  
+  // Move choppers according to frame time elapsed
+  for (i = 0; i < choppers.length; i++) {
+    choppers[i].move(elapsedTimeInMs);
+  }
+  
+  return checkCollisions(choppers, helipad, canvas.width, canvas.height);
+ }
+
+
+// Return True if a collision occurred, false otherwise. 
+function checkCollisions(choppers, helipad, canvasWidth, canvasHeight) {
+  // Interesting, it's easier and maybe even faster (for small N?)
+  // to just check collisions over N*N/2 possible combinations instead of making
+  // a sorted list with relative distances and only checking the ones that
+  // are close enough to each other. That's basically the first one, just doing
+  // more work.
+  var i, j, c, c2;
+  var collision = false;
+  for (i = 0; i < choppers.length; i++) {
+    c = choppers[i];
+    // Check for overlap with other choppers
+    for (j = i+1; j < choppers.length; j++) {
+      c2 = choppers[j];
+      if (OVERLAP_NONE != checkCircleOverlap(c.x, c.y, c.radius, c2.x, c2.y, c2.radius)) {
+        c.collision();
+        c2.collision();
+        collision = true;
+      }
+    }
+        
+    if (CollideEdgeOfMap(canvas.width, canvas.height, c.x, c.y)) {
+      c.collision();
+      collision = true;
+    }
+       
+    // Check for full overlap with helipad
+    if (OVERLAP_FULL == checkCircleOverlap(c.x, c.y, c.radius, helipad.x, helipad.y, helipad.radius)) {
+      c.landed();
+    }
+  }
+  return collision;
 }
+
+
+
 
 function CreateNewRandomChopper(canvasWidth, canvasHeight) {
 
   // Pick a spot some distance around the perimeter of the canvas
-  // starting at the top left corner and going clockwise
-  var distanceAroundEdgeOfCanvas = random(0, canvas.width*2+canvas.height*2);
+  // starting at the top left corner and going clockwise. However should be fully visible
+  // so minus a multiple of chopper width
+  var distanceAroundEdgeOfCanvas = random(0, canvas.width*2+canvas.height*2 - 8*CHOPPER_RADIUS);
   var x, y;
-  var result = MapDistanceToEdgeLocation(distanceAroundEdgeOfCanvas, canvas.width, canvas.height);
-  x = result[0];
-  y = result[1];
+  var result = MapDistanceToEdgeLocation(distanceAroundEdgeOfCanvas, canvas.width-4*CHOPPER_RADIUS, canvas.height-4*CHOPPER_RADIUS);
+  // Bring up the 0 values
+  x = result[0]+2*CHOPPER_RADIUS;
+  y = result[1]+2*CHOPPER_RADIUS;
 
   
   // All possible above positions are valid. However, only some headings from the
@@ -156,37 +198,6 @@ function CreateNewRandomChopper(canvasWidth, canvasHeight) {
   return new Chopper(x, y, heading);
 }
 
-function checkCollisions(choppers, helipad, canvasWidth, canvasHeight) {
-  // Interesting, it's easier and maybe even faster (for small N?)
-  // to just check collisions over all possible combinations instead of making
-  // a sorted list with relative distances and only checking the ones that
-  // are close enough to each other. That's basically the first one, just doing
-  // more work.
-  var i, j, c, c2;
-  for (i = 0; i < choppers.length; i++) {
-    c = choppers[i];
-    // Check for overlap with other choppers
-    for (j = i+1; j < choppers.length; j++) {
-      c2 = choppers[j];
-      if (OVERLAP_NONE != checkCircleOverlap(c.x, c.y, c.radius, c2.x, c2.y, c2.radius)) {
-        c.collision();
-        c2.collision();
-        UNSUCCESSFUL = true;
-      }
-    }
-        
-    if (CollideEdgeOfMap(canvas.width, canvas.height, c.x, c.y)) {
-      c.collision();
-      UNSUCCESSFUL = true;
-    }
-       
-    // Check for full overlap with helipad
-    if (OVERLAP_FULL == checkCircleOverlap(c.x, c.y, c.radius, helipad.x, helipad.y, helipad.radius)) {
-      points++;
-      c.landed();
-    }
-  }
-}
 
 
 

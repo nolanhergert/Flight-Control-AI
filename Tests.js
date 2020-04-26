@@ -4,6 +4,8 @@ function RunTests() {
   TestDisplacement();
   TestCalcHeading();
   TestMapDistanceToEdgeLocation();
+  TestCloneChoppers();
+  TestWaypointsUnshift();
 }
 
 // Test if overlap detection works properly
@@ -101,4 +103,46 @@ function TestMapDistanceToEdgeLocation() {
   console.assert(result.x == 0 && result.y == 1);
   result = new Waypoint(MapDistanceToEdgeLocation(1600, 400, 400));
   console.assert(result.x == 0 && result.y == 0);
+}
+
+
+
+function TestCloneChoppers() {
+  var choppers = [];
+  var i = 0;
+  choppers.push(new Chopper(0, 1, 2));
+  choppers.push(new Chopper(3, 4, 5));
+  
+  var chopperClones = [];
+  CloneChoppers(chopperClones, choppers);
+  
+  // Make sure the new clones have the same values as original at start,
+  // but after moving make sure they're different values
+  for (i = 0; i < chopperClones.length; i++) {
+    // Assert same values
+    console.assert(chopperClones[i].x == choppers[i].x);
+    console.assert(chopperClones[i].y == choppers[i].y);
+    console.assert(chopperClones[i].heading == choppers[i].heading);
+    // But make sure "==" compares references not values
+    console.assert(chopperClones[i] != choppers[i]);
+    // Move
+    chopperClones[i].move(1000);
+    // Assert different values
+    console.assert(chopperClones[i].x != choppers[i].x);
+    console.assert(chopperClones[i].y != choppers[i].y);
+    // Actually, heading should stay the same!
+    console.assert(chopperClones[i].heading == choppers[i].heading);
+    // References to self should match though
+    console.assert(chopperClones[i] == chopperClones[i]);
+  }
+}
+
+function TestWaypointsUnshift() {
+  var waypoints = [];
+  waypoints.unshift(new Waypoint([5,6]));
+  console.assert(waypoints[0].x == 5 && waypoints[0].y == 6);
+  waypoints.unshift(new Waypoint(Displacement(1,2,3,4,0)));
+  console.assert(waypoints[0].x == 1 && waypoints[0].y == 2);
+  
+  console.assert(waypoints.length == 2);
 }
