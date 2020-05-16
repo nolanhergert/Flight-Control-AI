@@ -5,7 +5,23 @@
 // Mostly just use min.js I think and avoid p5 online editor
 
 
-var helipad;
+
+
+//For example, if teams may decide early on that there’s only one approach to solve a problem or that a given algorithm / technique is the perfect one. Instead of choosing the simplest method that works for the problem and fulfills stakeholder requirements such as explainability, these teams may commit to complex AI methods before determining if simpler techniques could do the job.
+
+
+
+
+
+
+
+
+
+
+
+
+
+var helipads;
 var points;
 var choppers;
 
@@ -49,15 +65,17 @@ function setup() {
   // Keep the seed the same, you'll get the exact same "roll of the dice" every time! Makes reproduction much easier
   randomSeed(0);
   
-  window.canvas = createCanvas(400, 400);
+  window.canvas = createCanvas(800, 400);
   
   frameRate(FPS);
   choppers = [];
+  helipads = [];
   
-  helipad = new Helipad(canvas.width/2, canvas.height/2);
+  helipads.push(new Helipad(canvas.width/4, canvas.height/2, 'red'));
+  helipads.push(new Helipad(3*canvas.width/4, canvas.height/2, 'blue'));
   points = 0;
   
-  AI = new AISimple(choppers, helipad, canvas.width, canvas.height);
+  AI = new AISimple(choppers, helipads, canvas.width, canvas.height);
 }
 
 // Should really be called "loop()"
@@ -67,7 +85,7 @@ function draw() {
   // While we could increment by "wall clock"/real time here, it makes the result
   // using the debugger and when using lots of airplanes really jerky. So keeping
   // standard increment time based on FPS for now
-  moveWorld(choppers, helipad, canvas.width, canvas.height, TIME_INCREMENT);
+  moveWorld(choppers, helipads, canvas.width, canvas.height, TIME_INCREMENT);
   currentTime += TIME_INCREMENT;
   
   // If a chopper landed, remove it and increment points
@@ -103,7 +121,9 @@ function draw() {
 
   // Set background color
   background(135, 206, 250);
-  helipad.show();
+  for (i = 0; i < helipads.length; i++) {
+    helipads[i].show();
+  }
   for (i = 0; i < choppers.length; i++) {
     choppers[i].show();
   }
@@ -117,7 +137,7 @@ function draw() {
 // Making this a separate function allows for simulation without drawing when
 // doing AI path planning
 // Returns True if a collision occurred, false otherwise.
-function moveWorld(choppers, helipad, canvasWidth, canvasHeight, elapsedTimeInMs) {
+function moveWorld(choppers, helipads, canvasWidth, canvasHeight, elapsedTimeInMs) {
 
   var i;
   
@@ -126,12 +146,12 @@ function moveWorld(choppers, helipad, canvasWidth, canvasHeight, elapsedTimeInMs
     choppers[i].move(elapsedTimeInMs);
   }
   
-  return checkCollisions(choppers, helipad, canvas.width, canvas.height);
+  return checkCollisions(choppers, helipads, canvas.width, canvas.height);
  }
 
 
 // Return True if a collision occurred, false otherwise. 
-function checkCollisions(choppers, helipad, canvasWidth, canvasHeight) {
+function checkCollisions(choppers, helipads, canvasWidth, canvasHeight) {
   // Interesting, it's easier and maybe even faster (for small N?)
   // to just check collisions over N*N/2 possible combinations instead of making
   // a sorted list with relative distances and only checking the ones that
@@ -156,10 +176,11 @@ function checkCollisions(choppers, helipad, canvasWidth, canvasHeight) {
       collision = true;
     }
        
-    // Check for full overlap with helipad
-    if (OVERLAP_FULL == checkCircleOverlap(c.x, c.y, c.radius, helipad.x, helipad.y, helipad.radius)) {
-      c.landed();
-    }
+    // Check for full overlap with a helipad
+    for (j = 0; j < helipads.length; j++) {
+      if (OVERLAP_FULL == checkCircleOverlap(c.x, c.y, c.radius, helipads[j].x, helipads[j].y, helipad[j].radius)) {
+        c.landed();
+      }
   }
   return collision;
 }

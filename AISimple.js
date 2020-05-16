@@ -2,9 +2,9 @@
 
 
 class AISimple {
-  constructor(choppers, helipad, canvasWidth, canvasHeight) {
+  constructor(choppers, helipads, canvasWidth, canvasHeight) {
     this.choppers = choppers;
-    this.helipad = helipad;
+    this.helipads = helipads;
     this.canvasWidth = canvasWidth;
     this.canvasHeight = canvasHeight;
   
@@ -18,19 +18,25 @@ class AISimple {
     
     
     
-    // First try a straight path towards the helipad and
+    // First try a straight path towards the proper helipad and
     // run a <fake> simulation forward, checking for collisions.
-    // If a collision occurs, then delay starting on the straight path until you can go safely.
+    // If a collision occurs, back up a little then, delay starting, then try again
     
     // How to change the time on a simulation, hmm...that sounds hard. Let's just make
     // a copy of everything in its current state and use that instead.
     // Need to update this if helipads start moving too!
     var choppersCopy = [];
     var waypoints = [];
+    var helipad;
     
-    
+    // Determine proper helipad based on color match
+    for (i = 0; i < helipads.length; i++) {
+      if (chopperToPath.color == helipads[i].color) {
+        helipad = helipads[i];
+      }
+    }
 
-    // For now do a simple path, point towards the helipad!
+    // For now do a simple path, point towards the proper helipad!
     waypoints =  [new Waypoint([helipad.x, helipad.y])];
 
     while (true) {
@@ -47,7 +53,7 @@ class AISimple {
       // failure if it crashes before it gets there, need to replan.
       var collision = false;
       while (true) {
-        collision = moveWorld(choppersCopy, this.helipad, this.canvasWidth, this.canvasHeight, TIME_INCREMENT);
+        collision = moveWorld(choppersCopy, helipad, this.canvasWidth, this.canvasHeight, TIME_INCREMENT);
         if (collision == true) {
           break;
         }
@@ -75,6 +81,7 @@ class AISimple {
         break;
       } else {
         // Try a delay at the beginning by doing a little boogie
+        // unshift = insert at beginning
         waypoints.unshift(new Waypoint(Displacement(chopperToPath.x, chopperToPath.y, chopperToPath.heading, chopperToPath.speed, TIME_INCREMENT*2)));
         waypoints.unshift(new Waypoint([chopperToPath.x, chopperToPath.y]));
       }

@@ -5,12 +5,12 @@ const CHOPPER_SPEED = 40/1000; // pixels/ms
 
 // This should really be a generic "Aircraft" class, but we'll let it slide for now
 class Chopper {
-  constructor(x, y, heading) {
+  constructor(x, y, heading, color) {
     this.x = x;
     this.y = y;
     this.radius = CHOPPER_RADIUS;
     this.remove = false;
-    this.color = 'gray';
+    this.color = color;
     this.heading = heading; // in degrees clockwise from North. See http://3.bp.blogspot.com/-sKFXSUT021M/VZRjnWWlkfI/AAAAAAAABpE/p7ct0iK4r5w/s1600/Headingv3.jpg
     this.speed = CHOPPER_SPEED; // pixels/ms
     this.waypoints = [];
@@ -21,7 +21,7 @@ class Chopper {
     // Draw object
     // TODO: Use image sprite
     stroke(150);
-    fill(this.color);  
+    fill(this.color);
     circle(this.x, this.y, this.radius*2);
     
     // Draw waypoints + path between them

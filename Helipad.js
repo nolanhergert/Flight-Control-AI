@@ -1,10 +1,11 @@
-var HELIPAD_RADIUS = 12;
+var HELIPAD_RADIUS = 18;
 
 class Helipad {
-  constructor(x, y) {
+  constructor(x, y, color) {
     this.x = x;
     this.y = y;
     this.radius = HELIPAD_RADIUS;
+    this.color = color;
   }
   
   show() {
@@ -12,7 +13,7 @@ class Helipad {
     // Draw object
     // TODO: Use image sprite
     stroke(150);
-    fill('blue');  
+    fill(this.color);
     circle(this.x, this.y, this.radius*2);
     
     pop();
