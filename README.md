@@ -1,6 +1,9 @@
 # Flight-Control-AI
 Shall we play a game?
 
+Demo at: https://nolanhergert.github.io/Flight-Control-AI/
+
+
 Notes and learnings
 
 Try to break things down into simple, solvable chunks (even of fake problems) so you don't get overwhelmed.
